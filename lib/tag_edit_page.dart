@@ -80,13 +80,9 @@ TableRow _makeTableRow(String header, Widget w) {
 }
 
 class TagEditPage extends StatefulWidget {
-  final Tag tag;
-  final int index;
-  final bool isNew;
+  final int id;
 
-  TagEditPage(this.tag, {Key key, this.index})
-      : isNew = tag.name == '',
-        super(key: key);
+  TagEditPage({Key key, this.id}) : super(key: key);
 
   @override
   _TagEditPageState createState() => _TagEditPageState();
@@ -95,6 +91,7 @@ class TagEditPage extends StatefulWidget {
 class _TagEditPageState extends State<TagEditPage> {
   TextEditingController textController;
   int currentColor;
+  Tag tag;
 
   void onColorChanged(Color color) {
     setState(() => currentColor = color.value);
@@ -104,8 +101,13 @@ class _TagEditPageState extends State<TagEditPage> {
   @override
   void initState() {
     super.initState();
-    textController = new TextEditingController(text: widget.tag.name);
-    currentColor = widget.tag.color;
+    if (widget.id != null) {
+      tag = context.read<Tags>()[widget.id];
+    } else {
+      tag = Tag.empty();
+    }
+    textController = new TextEditingController(text: tag.name);
+    currentColor = tag.color;
   }
 
   @override
@@ -130,7 +132,7 @@ class _TagEditPageState extends State<TagEditPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isNew ? "Add tag" : "Edit tag"),
+        title: Text(widget.id == null ? "Add tag" : "Edit tag"),
         actions: [
           IconButton(
             icon: Icon(Icons.check),
@@ -139,12 +141,12 @@ class _TagEditPageState extends State<TagEditPage> {
                 // TODO: alert
                 return;
               }
-              widget.tag.name = textController.text;
-              widget.tag.color = currentColor;
-              if (widget.isNew) {
-                tags.add(widget.tag);
+              tag.name = textController.text;
+              tag.color = currentColor;
+              if (widget.id == null) {
+                tags.add(tag);
               } else {
-                tags[widget.index] = widget.tag;
+                tags.updateItem(tag.id, tag.name, currentColor);
               }
               Navigator.pop(context);
             },

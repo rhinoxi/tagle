@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -6,6 +8,8 @@ import 'package:tagle/abstract_page.dart';
 import 'package:tagle/model/mode.dart';
 import 'package:tagle/model/tag.dart';
 import 'package:tagle/tag_edit_page.dart';
+
+HashSet<int> _selectedTags = new HashSet<int>();
 
 AlertDialog _makeChildDialog(BuildContext context, Function(String) plusFunc) {
   var textController = new TextEditingController();
@@ -67,147 +71,45 @@ AlertDialog _makeDeleteAlertDialog(BuildContext context, Function deleteFunc) {
   return alert;
 }
 
-Widget _makeTagCard(
-    BuildContext context,
-    Tag item,
-    Mode mode,
-    VoidCallback onEdit,
-    VoidCallback onDelete,
-    VoidCallback onPlusChild,
-    VoidCallback onPressedTagIcon,
-    VoidCallback onLongPressedTagIcon) {
-  return Container(
-    decoration: new BoxDecoration(
-      color: Color(item.color),
-      borderRadius: BorderRadius.all(Radius.circular(20)),
-    ),
-    padding: EdgeInsets.all(20),
-    child: Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                item.name,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[100],
-                ),
-              ),
-            ),
-            Visibility(
-              visible: mode.value == TagleMode.normal,
-              maintainSize: true,
-              maintainAnimation: true,
-              maintainState: true,
-              child: IconButton(
-                icon: Icon(Icons.edit),
-                color: Colors.grey[100],
-                onPressed: onEdit,
-              ),
-            ),
-          ],
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: item.children.length,
-            itemBuilder: (BuildContext context, int index) {
-              return Container(
-                padding: EdgeInsets.all(10),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      child: Container(
-                        height: 24,
-                        width: 24,
-                        child: mode.value == TagleMode.normal
-                            ? Icon(
-                                Icons.loyalty,
-                                size: 16,
-                                color: Colors.grey[100],
-                              )
-                            : Checkbox(
-                                value: false,
-                                onChanged: (bool value) {},
-                              ),
-                      ),
-                      onTap: onPressedTagIcon,
-                      onLongPress: onLongPressedTagIcon,
-                    ),
-                    Flexible(
-                      child: Container(
-                        padding: EdgeInsets.only(left: 10),
-                        child: Text(
-                          item.children[index].name,
-                          style: TextStyle(
-                            fontSize: 20,
-                            color: Colors.grey[100],
-                          ),
-                        ),
-                      ),
-                    )
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-        Visibility(
-          visible: mode.value == TagleMode.normal,
-          maintainSize: true,
-          maintainAnimation: true,
-          maintainState: true,
-          child:
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            IconButton(
-              icon: Icon(Icons.delete),
-              color: Colors.grey[100],
-              onPressed: onDelete,
-            ),
-            IconButton(
-              icon: Icon(Icons.add),
-              color: Colors.grey[100],
-              onPressed: onPlusChild,
-            ),
-          ]),
-        )
-      ],
-    ),
-  );
-}
-
 class TagPageBody extends StatefulWidget {
   @override
   _TagPageBodyState createState() => _TagPageBodyState();
 }
 
 class _TagPageBodyState extends State<TagPageBody> {
+  Map<int, List<bool>> isChecked;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    isChecked = new Map();
+  }
+
   @override
   Widget build(BuildContext context) {
     Mode mode = context.watch<Mode>();
     // double _maxWidth = MediaQuery.of(context).size.width;
     double _maxHeight = MediaQuery.of(context).size.height;
 
-    var tags = context.watch<Tags>();
+    Tags tags = context.watch<Tags>();
 
-    List<Widget> tagSliders = [];
-    for (var i = 0; i < tags.items.length; i++) {
-      Tag item = tags[i];
+    // List<Widget> tagSliders = [];
+    List<Widget> tagSliders = tags.getRootTags().map((Tag item) {
+      if (mode.value == TagleMode.normal) {
+        isChecked[item.id] = List<bool>.filled(item.children.length, false);
+      }
       VoidCallback onDelete = () => showDialog(
             context: context,
             builder: (BuildContext context) => _makeDeleteAlertDialog(
               context,
-              () => tags.remove(item),
+              () => tags.remove(item.id),
             ),
           );
 
       VoidCallback onEdit = () => Navigator.push(
             context,
-            MaterialPageRoute(
-                builder: (context) => TagEditPage(item, index: i)),
+            MaterialPageRoute(builder: (context) => TagEditPage(id: item.id)),
           );
 
       VoidCallback onPlusChild = () => showDialog(
@@ -216,8 +118,8 @@ class _TagPageBodyState extends State<TagPageBody> {
               context,
               (String name) {
                 // TODO: add new tag, set parent
-                var tag = Tag(name, item.color, parent: item);
-                tags.addChild(i, tag);
+                var tag = Tag(name, item.color, parentID: item.id);
+                tags.addChild(item.id, tag);
               },
             ),
           );
@@ -232,7 +134,7 @@ class _TagPageBodyState extends State<TagPageBody> {
         }
       };
 
-      tagSliders.add(_makeTagCard(
+      return _makeTagCard(
         context,
         item,
         mode,
@@ -241,8 +143,9 @@ class _TagPageBodyState extends State<TagPageBody> {
         onPlusChild,
         onPressedTagIcon,
         onLongPressedTagIcon,
-      ));
-    }
+        tags,
+      );
+    }).toList();
 
     return Container(
       padding: EdgeInsets.symmetric(vertical: 20),
@@ -257,6 +160,134 @@ class _TagPageBodyState extends State<TagPageBody> {
       ),
     );
   }
+
+  Widget _makeTagCard(
+    BuildContext context,
+    Tag item,
+    Mode mode,
+    VoidCallback onEdit,
+    VoidCallback onDelete,
+    VoidCallback onPlusChild,
+    VoidCallback onPressedTagIcon,
+    VoidCallback onLongPressedTagIcon,
+    Tags tags,
+  ) {
+    return Container(
+      decoration: new BoxDecoration(
+        color: Color(item.color),
+        borderRadius: BorderRadius.all(Radius.circular(20)),
+      ),
+      padding: EdgeInsets.all(20),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  item.name,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[100],
+                  ),
+                ),
+              ),
+              Visibility(
+                visible: mode.value == TagleMode.normal,
+                maintainSize: true,
+                maintainAnimation: true,
+                maintainState: true,
+                child: IconButton(
+                  icon: Icon(Icons.edit),
+                  color: Colors.grey[100],
+                  onPressed: onEdit,
+                ),
+              ),
+            ],
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: item.children.length,
+              itemBuilder: (BuildContext context, int index) {
+                return Container(
+                  padding: EdgeInsets.all(10),
+                  child: Row(
+                    children: [
+                      mode.value == TagleMode.normal
+                          ? GestureDetector(
+                              child: Container(
+                                  height: 24,
+                                  width: 24,
+                                  child: Icon(
+                                    Icons.loyalty,
+                                    size: 16,
+                                    color: Colors.grey[100],
+                                  )),
+                              onTap: onPressedTagIcon,
+                              onLongPress: onLongPressedTagIcon,
+                            )
+                          : Container(
+                              height: 24,
+                              width: 24,
+                              child: Checkbox(
+                                value: isChecked[item.id][index],
+                                onChanged: (bool value) {
+                                  setState(() {
+                                    isChecked[item.id][index] = value;
+                                    int id = item.children[index];
+                                    if (value) {
+                                      _selectedTags.add(id);
+                                    } else {
+                                      _selectedTags.remove(id);
+                                    }
+                                  });
+                                },
+                              ),
+                            ),
+                      Flexible(
+                        child: Container(
+                          padding: EdgeInsets.only(left: 10),
+                          child: Text(
+                            tags[item.children[index]].name,
+                            style: TextStyle(
+                              fontSize: 20,
+                              color: Colors.grey[100],
+                            ),
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          Visibility(
+            visible: mode.value == TagleMode.normal,
+            maintainSize: true,
+            maintainAnimation: true,
+            maintainState: true,
+            child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.delete),
+                    color: Colors.grey[100],
+                    onPressed: onDelete,
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.add),
+                    color: Colors.grey[100],
+                    onPressed: onPlusChild,
+                  ),
+                ]),
+          )
+        ],
+      ),
+    );
+  }
 }
 
 class TagPage extends AbsPage {
@@ -266,6 +297,7 @@ class TagPage extends AbsPage {
 
   List<Widget> getActions(BuildContext context) {
     Mode mode = context.watch<Mode>();
+    Tags tags = context.read<Tags>();
     return mode.value == TagleMode.normal
         ? [
             IconButton(
@@ -273,8 +305,7 @@ class TagPage extends AbsPage {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (context) => TagEditPage(Tag.empty())),
+                  MaterialPageRoute(builder: (context) => TagEditPage()),
                 );
               },
             )
@@ -283,7 +314,11 @@ class TagPage extends AbsPage {
             IconButton(
               icon: Icon(Icons.delete),
               // TODO:
-              onPressed: () {},
+              onPressed: () {
+                tags.removeMulti(_selectedTags);
+                _selectedTags.clear();
+                mode.value = TagleMode.normal;
+              },
             ),
             IconButton(
               icon: Icon(Icons.replay),

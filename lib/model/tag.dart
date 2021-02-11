@@ -6,9 +6,13 @@ import 'package:flutter/material.dart';
 Tags deletedTagsInUse;
 
 class Tags with ChangeNotifier {
-  List<Tag> _items = [];
+  var _items = <int, Tag>{};
+  // List<Tag> _items = [];
+  // 被删除了但以前使用过的 tag
+  // List<Tag> _invalidItems = [];
+  var _invalidItems = <int, Tag>{};
 
-  List<Tag> get items => _items;
+  Map<int, Tag> get items => _items;
 
   operator [](int i) => _items[i];
   operator []=(int i, Tag tag) {
@@ -17,25 +21,49 @@ class Tags with ChangeNotifier {
   }
 
   List<Tag> getRootTags() {
-    return _items.where((i) => i.parent == null).toList();
+    return _items.values.where((i) => i.parentID == null).toList();
   }
 
-  void addChild(int index, Tag t) {
-    _items[index].children.add(t);
+  void updateItem(int id, String name, int color) {
+    _items[id].name = name;
+    _items[id].color = color;
+    for (int childID in _items[id].children) {
+      _items[childID].color = color;
+    }
+    notifyListeners();
+  }
+
+  void addChild(int parentID, Tag t) {
+    _items[t.id] = t;
+    _items[parentID].children.add(t.id);
     notifyListeners();
   }
 
   void add(Tag t) {
-    _items.add(t);
+    _items[t.id] = (t);
     notifyListeners();
   }
 
-  // TODO: 已经被使用过的 tag 不能轻易删除
-  void remove(Tag t) {
-    _items.remove(t);
-    for (var child in t.children) {
-      _items.remove(child);
+  void removeMulti(Iterable<int> ids) {
+    for (int id in ids) {
+      _removeWithoutNotify(id);
     }
+    notifyListeners();
+  }
+
+  void _removeWithoutNotify(int id) {
+    if (_items[id].parentID != null) {
+      _items[items[id].parentID].children.remove(id);
+    }
+    for (var childID in _items[id].children) {
+      _items.remove(childID);
+    }
+    _items.remove(id);
+  }
+
+  // TODO: 已经被使用过的 tag 不能轻易删除
+  void remove(int id) {
+    _removeWithoutNotify(id);
     notifyListeners();
   }
 }
@@ -49,26 +77,23 @@ class Tag {
   // TODO: 自增，需要记录 last id
   int id;
   String name;
-  int _color;
-  Tag parent;
-  List<Tag> children = [];
-
-  int get color => _color;
-
-  set color(int c) {
-    _color = c;
-    for (var child in children) {
-      child.color = c;
-    }
-  }
+  int color;
+  int parentID;
+  List<int> children = [];
 
   static Tag empty() {
     return Tag('', 0XFFC16069);
   }
 
-  Tag(this.name, this._color, {this.id, this.parent}) {
+  Tag(this.name, this.color, {this.id, this.parentID}) {
     if (id == null) {
       id = nextID();
     }
+  }
+
+  @override
+  String toString() {
+    // TODO: implement toString
+    return name;
   }
 }
