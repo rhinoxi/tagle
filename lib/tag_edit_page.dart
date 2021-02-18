@@ -144,6 +144,7 @@ class _TagEditPageState extends State<TagEditPage> {
               tag.name = textController.text;
               tag.color = currentColor;
               if (widget.id == null) {
+                tag.persist();
                 tags.add(tag);
               } else {
                 tags.updateItem(tag.id, tag.name, currentColor);

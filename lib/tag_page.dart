@@ -119,6 +119,7 @@ class _TagPageBodyState extends State<TagPageBody> {
               (String name) {
                 // TODO: add new tag, set parent
                 var tag = Tag(name, item.color, parentID: item.id);
+                tag.persist();
                 tags.addChild(item.id, tag);
               },
             ),
@@ -293,6 +294,10 @@ class _TagPageBodyState extends State<TagPageBody> {
 }
 
 class TagPage extends AbsPage {
+  Widget getTitle() {
+    return Text('Tagle');
+  }
+
   Widget getBody() {
     return TagPageBody();
   }

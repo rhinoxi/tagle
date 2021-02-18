@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:tagle/abstract_page.dart';
 
 class DataPage extends AbsPage {
+  Widget getTitle() {
+    return Text('Tagle');
+  }
+
   Widget getBody() {
     return DataPageBody();
   }

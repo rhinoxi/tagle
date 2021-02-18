@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:tagle/abstract_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:tagle/abstract_page.dart';
+import 'package:tagle/global.dart';
 import 'package:tagle/home_page.dart';
 import 'package:tagle/tag_page.dart';
 import 'package:tagle/data_page.dart';
 import 'package:tagle/model/tag.dart';
 import 'package:tagle/model/mode.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  localStorage = await SharedPreferences.getInstance();
+  lastID = localStorage.getInt('lastID') ?? 0;
+  print('lastID: $lastID');
+
   runApp(
     MultiProvider(
       providers: [
@@ -17,6 +24,9 @@ void main() {
         ),
         ChangeNotifierProvider(
           create: (context) => Mode(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => DailyTag(),
         ),
       ],
       child: MyApp(),
@@ -97,14 +107,15 @@ class _MainPageState extends State<MainPage> {
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: _pageOptions[_selectedIndex].getTitle(),
+        centerTitle: true,
         actions: _pageOptions[_selectedIndex].getActions(context),
       ),
       body: _pageOptions[_selectedIndex].getBody(),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: Icon(Icons.create),
+            icon: Icon(Icons.view_module),
             label: 'home',
           ),
           BottomNavigationBarItem(
