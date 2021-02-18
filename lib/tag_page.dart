@@ -151,6 +151,7 @@ class _TagPageBodyState extends State<TagPageBody> {
       padding: EdgeInsets.symmetric(vertical: 20),
       child: CarouselSlider(
         options: CarouselOptions(
+          enableInfiniteScroll: tagSliders.length > 2,
           autoPlay: false,
           height: _maxHeight,
           aspectRatio: 2,
@@ -178,113 +179,114 @@ class _TagPageBodyState extends State<TagPageBody> {
         borderRadius: BorderRadius.all(Radius.circular(20)),
       ),
       padding: EdgeInsets.all(20),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  item.name,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey[100],
+      child: GestureDetector(
+        onTap: onPressedTagIcon,
+        onLongPress: onLongPressedTagIcon,
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    item.name,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[100],
+                    ),
                   ),
                 ),
-              ),
-              Visibility(
-                visible: mode.value == TagleMode.normal,
-                maintainSize: true,
-                maintainAnimation: true,
-                maintainState: true,
-                child: IconButton(
-                  icon: Icon(Icons.edit),
-                  color: Colors.grey[100],
-                  onPressed: onEdit,
+                Visibility(
+                  visible: mode.value == TagleMode.normal,
+                  maintainSize: true,
+                  maintainAnimation: true,
+                  maintainState: true,
+                  child: IconButton(
+                    icon: Icon(Icons.edit),
+                    color: Colors.grey[100],
+                    onPressed: onEdit,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: item.children.length,
-              itemBuilder: (BuildContext context, int index) {
-                return Container(
-                  padding: EdgeInsets.all(10),
-                  child: Row(
-                    children: [
-                      mode.value == TagleMode.normal
-                          ? GestureDetector(
-                              child: Container(
-                                  height: 24,
-                                  width: 24,
-                                  child: Icon(
-                                    Icons.loyalty,
-                                    size: 16,
-                                    color: Colors.grey[100],
-                                  )),
-                              onTap: onPressedTagIcon,
-                              onLongPress: onLongPressedTagIcon,
-                            )
-                          : Container(
-                              height: 24,
-                              width: 24,
-                              child: Checkbox(
-                                value: isChecked[item.id][index],
-                                onChanged: (bool value) {
-                                  setState(() {
-                                    isChecked[item.id][index] = value;
-                                    int id = item.children[index];
-                                    if (value) {
-                                      _selectedTags.add(id);
-                                    } else {
-                                      _selectedTags.remove(id);
-                                    }
-                                  });
-                                },
+              ],
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: item.children.length,
+                itemBuilder: (BuildContext context, int index) {
+                  return Container(
+                    padding: EdgeInsets.all(10),
+                    child: Row(
+                      children: [
+                        mode.value == TagleMode.normal
+                            ? Container(
+                                height: 24,
+                                width: 24,
+                                child: Icon(
+                                  Icons.loyalty,
+                                  size: 16,
+                                  color: Colors.grey[100],
+                                ),
+                              )
+                            : Container(
+                                height: 24,
+                                width: 24,
+                                child: Checkbox(
+                                  value: isChecked[item.id][index],
+                                  onChanged: (bool value) {
+                                    setState(() {
+                                      isChecked[item.id][index] = value;
+                                      int id = item.children[index];
+                                      if (value) {
+                                        _selectedTags.add(id);
+                                      } else {
+                                        _selectedTags.remove(id);
+                                      }
+                                    });
+                                  },
+                                ),
+                              ),
+                        Flexible(
+                          child: Container(
+                            padding: EdgeInsets.only(left: 10),
+                            child: Text(
+                              tags[item.children[index]].name,
+                              style: TextStyle(
+                                fontSize: 20,
+                                color: Colors.grey[100],
                               ),
                             ),
-                      Flexible(
-                        child: Container(
-                          padding: EdgeInsets.only(left: 10),
-                          child: Text(
-                            tags[item.children[index]].name,
-                            style: TextStyle(
-                              fontSize: 20,
-                              color: Colors.grey[100],
-                            ),
                           ),
-                        ),
-                      )
-                    ],
-                  ),
-                );
-              },
+                        )
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-          Visibility(
-            visible: mode.value == TagleMode.normal,
-            maintainSize: true,
-            maintainAnimation: true,
-            maintainState: true,
-            child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.delete),
-                    color: Colors.grey[100],
-                    onPressed: onDelete,
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.add),
-                    color: Colors.grey[100],
-                    onPressed: onPlusChild,
-                  ),
-                ]),
-          )
-        ],
+            Visibility(
+              visible: mode.value == TagleMode.normal,
+              maintainSize: true,
+              maintainAnimation: true,
+              maintainState: true,
+              child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.delete),
+                      color: Colors.grey[100],
+                      onPressed: onDelete,
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.add),
+                      color: Colors.grey[100],
+                      onPressed: onPlusChild,
+                    ),
+                  ]),
+            )
+          ],
+        ),
       ),
     );
   }
