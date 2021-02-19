@@ -161,10 +161,11 @@ class Tag {
   }
 }
 
-class DailyTag with ChangeNotifier {
+class DailyTagRaw {}
+
+class DailyTag extends DailyTagRaw with ChangeNotifier {
   DateTime today;
   DateTime tagDate;
-  final DateFormat formatter = DateFormat('yyyy-MM-dd');
   List<int> tagToday;
 
   DailyTag() {
@@ -178,20 +179,15 @@ class DailyTag with ChangeNotifier {
             today.day != now.day) {
           today = now;
           _load(today);
+          notifyListeners();
         }
       },
     );
     _load(today);
   }
 
-  bool get isToday => today.day == tagDate.day;
-
-  void yesterday() {
-    _load(tagDate.subtract(Duration(days: 1)));
-  }
-
-  void tomorrow() {
-    _load(tagDate.add(Duration(days: 1)));
+  String todayStr() {
+    return formatter.format(tagDate);
   }
 
   void _load(DateTime dt) {
@@ -199,11 +195,18 @@ class DailyTag with ChangeNotifier {
     tagToday = jsonDecode(
             localStorage.getString('$DailyTagPrefix:' + todayStr()) ?? '[]')
         .cast<int>();
+  }
+
+  bool get isToday => today.day == tagDate.day;
+
+  void yesterday() {
+    _load(tagDate.subtract(Duration(days: 1)));
     notifyListeners();
   }
 
-  String todayStr() {
-    return formatter.format(tagDate);
+  void tomorrow() {
+    _load(tagDate.add(Duration(days: 1)));
+    notifyListeners();
   }
 
   void tagleAdd(int id) {
@@ -220,3 +223,29 @@ class DailyTag with ChangeNotifier {
     notifyListeners();
   }
 }
+
+class ValidDates {
+  List<String> values;
+
+  ValidDates() {
+    var tmp = localStorage.getString(ValidDatesKey) ?? '[]';
+    values = jsonDecode(tmp).cast<String>();
+  }
+
+  void add(DateTime dt) {
+    var dtStr = formatter.format(dt);
+    for (int i = 0; i < values.length; i++) {
+      if (dtStr == values[i]) {
+        return;
+      } else if (dtStr.compareTo(values[i]) > 0) {
+        values.insert(i, dtStr);
+        localStorage.setString(ValidDatesKey, jsonEncode(values));
+        return;
+      }
+    }
+    values.insert(values.length, dtStr);
+    localStorage.setString(ValidDatesKey, jsonEncode(values));
+  }
+}
+
+ValidDates vd = ValidDates();

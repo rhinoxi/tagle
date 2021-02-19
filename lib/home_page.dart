@@ -209,6 +209,7 @@ class _TaglePickState extends State<TaglePick> {
         onChanged: (bool value) {
           if (value) {
             dailyTag.tagleAdd(id);
+            vd.add(dailyTag.tagDate);
           } else {
             dailyTag.tagleRemove(id);
           }
