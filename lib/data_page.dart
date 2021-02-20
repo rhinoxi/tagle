@@ -39,9 +39,8 @@ class DataContent extends StatefulWidget {
 
 class _DataContentState extends State<DataContent> {
   Tags tags;
-
   // 获取之前 n 天的数据，不包括今天和昨天，因为今天和昨天的数据还可以编辑，而再往前的数据已经归档
-  List<StatInfo> getStatInfo(Tags tags, int n) {
+  List<StatInfo> getStatInfo(Tags tags, int n, bool group) {
     Map<int, StatInfo> m = {};
     var today = DateTime.now();
     // 左闭右开
@@ -54,13 +53,23 @@ class _DataContentState extends State<DataContent> {
       } else if (d.compareTo(startDateStr) < 0) {
         break;
       } else {
+        Set<int> once = {};
         List<int> tagIDs =
             jsonDecode(localStorage.getString('$DailyTagPrefix:$d') ?? '[]')
                 .cast<int>();
 
         for (int id in tagIDs) {
-          m[id] ??= StatInfo(tags[id].name, n, tags[id].color);
-          m[id].inc();
+          if (tags[id] != null) {
+            if (group) {
+              id = tags[id].parentID;
+            }
+            if (once.contains(id)) {
+              continue;
+            }
+            once.add(id);
+            m[id] ??= StatInfo(tags[id].name, n, tags[id].color);
+            m[id].inc();
+          }
         }
       }
     }
@@ -69,17 +78,13 @@ class _DataContentState extends State<DataContent> {
     return ret;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    var tags = context.read<Tags>();
-    List<StatInfo> weekly = getStatInfo(tags, 7);
-    List<StatInfo> monthly = getStatInfo(tags, 30);
-    List<StatInfo> yearly = getStatInfo(tags, 365);
+  Widget _makeTabBody(
+      List<StatInfo> weekly, List<StatInfo> monthly, List<StatInfo> yearly) {
     return SingleChildScrollView(
       child: Column(
         children: [
           Container(
-            padding: EdgeInsets.only(top: 10),
+            padding: EdgeInsets.only(top: 20),
             alignment: Alignment.center,
             child: Text(
               "周",
@@ -92,7 +97,7 @@ class _DataContentState extends State<DataContent> {
           ),
           Divider(),
           Container(
-            padding: EdgeInsets.only(top: 10),
+            padding: EdgeInsets.only(top: 20),
             alignment: Alignment.center,
             child: Text(
               "月",
@@ -105,7 +110,7 @@ class _DataContentState extends State<DataContent> {
           ),
           Divider(),
           Container(
-            padding: EdgeInsets.only(top: 10),
+            padding: EdgeInsets.only(top: 20),
             alignment: Alignment.center,
             child: Text(
               "年",
@@ -115,6 +120,41 @@ class _DataContentState extends State<DataContent> {
           HorizontalBarLabelChart(
             _createSeriesData(yearly),
             animate: false,
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    var tags = context.read<Tags>();
+    List<StatInfo> weekly = getStatInfo(tags, 7, false);
+    List<StatInfo> monthly = getStatInfo(tags, 30, false);
+    List<StatInfo> yearly = getStatInfo(tags, 365, false);
+    List<StatInfo> weeklyGroup = getStatInfo(tags, 7, true);
+    List<StatInfo> monthlyGroup = getStatInfo(tags, 30, true);
+    List<StatInfo> yearlyGroup = getStatInfo(tags, 365, true);
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          Container(
+            color: Colors.lightBlue,
+            child: TabBar(
+              tabs: [
+                Tab(text: 'detail'),
+                Tab(text: 'group'),
+              ],
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _makeTabBody(weekly, monthly, yearly),
+                _makeTabBody(weeklyGroup, monthlyGroup, yearlyGroup),
+              ],
+            ),
           ),
         ],
       ),
